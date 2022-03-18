@@ -1,10 +1,13 @@
 ---
+
 layer: splash
 title: "Linear Layer From Scratch with PyTorch"
 author: Erick Platero
 category: DL
 tags: [dl] 
-# tags: [dl] # changes url to localhost:port/dl/Linear-...
+
+---
+
 # Linear Layer From Scratch with PyTorch
 
 

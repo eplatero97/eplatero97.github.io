@@ -1,11 +1,15 @@
-```
+---
+
 layer: splash
 title: "Dropout Layer From Scratch with PyTorch"
 author: Erick Platero
 category: DL
 tags: [dl] 
 user_profile: true 
-```
+
+---
+
+# Dropout Layer
 
 During training, the `nn.Dropout()` layer is a: 
 
@@ -20,9 +24,13 @@ During inference, it just computes an identity function, which is equivalent to 
 This layer is used as a regularization method to mitigate over-fitting of data. It is a simple yet effective method that was presented on the [Improving neural networks by preventing co-adaptation of feature detectors]([[1207.0580\] Improving neural networks by preventing co-adaptation of feature detectors (arxiv.org)](https://arxiv.org/abs/1207.0580)) paper.
 
 We can represent the forward operation as follows:
+
+
 $$
 a(Dropout(\vec{x})) =a(\vec{x} * \vec{b})
 $$
+
+
 where: 
 
 * $\vec{x} \in R^n$, 
@@ -32,9 +40,13 @@ where:
 > NOTE: the $n$ in $Bernoulli(p)^n$ means that we will "run" the Bernoulli function $n$ times. Further, we are representing the input as a vector but it can be a tensor of any dimension. Lastly, the variable $a$ represents a constant. 
 
 Then, the derivative becomes:
+
+
 $$
 \frac{d}{d\vec{x}}a(Dropout(\vec{x})) = a*\vec{b}
 $$
+
+
 **Intuition?**
 
 The intuition of this operation is that we want the network to learn different mapping configurations of the same input to reach a desired ground-truth output.  This is because we are training the model to become "Bernoulli-invariant" to some degree at the specific layer location. This adds difficulty in learning I/O mappings and thus, benefits from generalizing our data. 
@@ -42,13 +54,20 @@ The intuition of this operation is that we want the network to learn different m
 **Scaling?**
 
 The scaling factor $a$ is implemented so that the expected output of the forward pass during training is roughly equal to that during inference. The authors chose $p = .5$  and as such, the expected the expected output of the operation during training is expected to be lower than that during inference because we are dropping some elements to zero. 
+
+
 $$
 E[\vec{b} \sim Bernoulli(p=.5)^n] = p \approx .5 < 1 = E[\vec{b} \sim Bernoulli(1)^n]
 $$
+
+
 However, when we scale the output by $a = \frac{1}{1-.5} = \frac{1}{.5} =  2$ during training, we get below:
+
 $$
 E[a *\vec{b} \sim Bernoulli(p)^n] = ap \approx 2\frac{1}{2} = 1 = 1 = E[\vec{b} \sim Bernoulli(1)^n]
 $$
+
+
 We want to keep the mean of the distributions during training to be roughly equal to that of inference so that during inference, we will be able to harness the learned representations created during training. If not, then inputs of a different scale may effectively undermine network performance. 
 
 However, the above formulation only evens out the expected outputs when $p = .5$. What about when we want something different such as $p = .1$? The PyTorch implementation always sets $a = \frac{1}{1-p}$, and thus, the expected outputs between training and inference will always be different for the same input if $p \not = .5$. 

@@ -1,6 +1,7 @@
 ---
 
-layer: splash
+layout: single
+classes: wide
 title: "Linear Layer From Scratch with PyTorch"
 author: Erick Platero
 category: DL

@@ -6,11 +6,9 @@ title: "Dropout Layer From Scratch with PyTorch"
 author: Erick Platero
 category: DL
 tags: [dl] 
-user_profile: true 
+author_profile: true 
 
 ---
-
-# Dropout Layer
 
 During training, the `nn.Dropout()` layer is a: 
 

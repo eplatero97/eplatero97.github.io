@@ -6,10 +6,9 @@ title: "Linear Layer From Scratch with PyTorch"
 author: Erick Platero
 category: DL
 tags: [dl] 
+author_profile: true 
 
 ---
-
-# Linear Layer From Scratch with PyTorch
 
 
 

@@ -13,14 +13,14 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: MM
+domain: eplatero97.github.io
+url: https://eplatero97.github.io
+title: "Deep Learning Re-Implemented" # "A Data Science Blog"
 email:
 description: >- # this means to ignore newlines until "baseurl:"
-  Write an awesome description for your new site here. You can edit this
-  line in _config.yml. It will appear in your document head meta (for
-  Google search results) and in your feed.xml site description.
-twitter_username: username
-github_username: username
+  A Deep Learning Implementation Blog
+# twitter_username: username
+github_username: eplatero97
 minimal_mistakes_skin: default
 search: true
 
@@ -57,23 +57,35 @@ plugins:
   - jemoji
   - jekyll-include-cache
 
+# Site Author
 author:
-  name   : "First Lastname"
-  avatar : "/assets/images/bio-photo.jpg"
-  bio    : "My awesome biography constrained to a sentence or two goes here."
+  name             : "Erick Platero"
+  avatar           : "/assets/images/bio_photo_2.JPG"
+  bio              : # "My amazing bio about me"
+  location         : "Houston, TX"
+  email            : "eeplater@central.uh.edu"
   links:
+    - label: "Email"
+      icon: "fas fa-fw fa-envelope-square"
+      # url: "mailto:your.name@email.com"
     - label: "Website"
       icon: "fas fa-fw fa-link"
-      url: "https://"
+      # url: "https://your-website.com"
     - label: "Twitter"
       icon: "fab fa-fw fa-twitter-square"
-      url: "https://twitter.com/"
+      # url: "https://twitter.com/"
+    - label: "Facebook"
+      icon: "fab fa-fw fa-facebook-square"
+      # url: "https://facebook.com/"
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
-      url: "https://github.com/"
+      url: "https://github.com/eplatero97"
     - label: "Instagram"
       icon: "fab fa-fw fa-instagram"
-      url: "https://instagram.com/"
+      # url: "https://instagram.com/"
+    - label: "LinkedIn"
+      icon: "fab fa-fw fa-linkedin"
+      url: "https://www.linkedin.com/in/erick-platero-482157214/"
 
 footer:
   links:

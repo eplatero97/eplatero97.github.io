@@ -12,9 +12,9 @@ author_profile: true
 
 ### Objective
 
-In most cases, the objective in ML and DL boil down to one thing: **minimizing error**.
+In most cases, the primary objective in Machine Learning (ML) and Deep Learning (DL) is to **minimize error**.
 
-This error is computed by feeding our model some data, recording its predictions, and feeding it to a criterion, which evaluates the performance or error of the model so that we can backpropagate/train it. We will call the operation that evaluates performance our Loss function.
+The error is computed by feeding data to our model, recording its predictions, and then evaluating these predictions using a criterion. This criterion assesses the model's performance or error, allowing us to backpropagate and train the model. We refer to this evaluation operation as our Loss function.
 
 <img src="https://github.com/Erick7451/DL-with-PyTorch/blob/master/img/image-20201022230530198.png?raw=true" alt="image-20201022230530198.png" style="zoom:80%;" />
 
@@ -46,7 +46,7 @@ More succinctly:
 
 It's a simple formulation but a powerful technique. 
 
-Now, Gradient Descent is often referred to as "stochastic" in reference to the lack of RAM storage that is needed to hold the usually large amounts of data needed to train Deep Learning models. As such, we are instead forced to create batches of (usually) randomly distributed data. When we do this, given that we are training our model on different distributions of data, our model will look like we are taking random or stochastic steps that will slowly converge to a minimum. 
+Gradient Descent is often referred to as "stochastic" when it operates on batches of randomly distributed data, rather than the full dataset. This approach is necessary due to the limited RAM storage available for large Deep Learning datasets. By training on these random batches, the model's steps appear stochastic, slowly converging to a minimum. It's worth noting that true Stochastic Gradient Descent uses a single example from the training dataset to compute the gradient, while the batch version is more commonly used in practice.
 
 I mentioned that this technique "slowly" converges because gradient descent is only effective when it is constantly iterated through thousands of cycles due to the multiplication with a small $\alpha$, which forces our "step" to be tiny (I will expand more on this in the next section).
 
@@ -62,7 +62,7 @@ $$
 
 From x, if we take a small forward step $h$, how much will $y$ increase/decrease by?
 
-Traditionally, this formulation is interpreted as the velocity of the function at $x$. However, we can reformulate our expression through some algebra so lthat it can actually be interpreted as a linear approximation of $f(x+h)$ from our initial value $(x, f(x))$ to an arbitrary $x+h$. 
+Traditionally, this formulation is interpreted as the velocity of the function at $x$. However, through algebraic manipulation, we can reinterpret it as a linear approximation of $f(x+h)$, estimating the value at $x+h$ based on the initial value $(x, f(x))$.
 
 $$
 \begin{align*}

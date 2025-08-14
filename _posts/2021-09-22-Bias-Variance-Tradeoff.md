@@ -1,6 +1,5 @@
 ---
-
-layout: splash
+layout: single
 title: "Bias-Variance Tradeoff"
 author: Erick Platero
 category: stats

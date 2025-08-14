@@ -1,7 +1,7 @@
 ---
 layout: single
 classes: wide
-title: "Logistic-Regression"
+title: "Logistic Regression"
 author: Erick Platero
 category: DL
 tags: [dl]

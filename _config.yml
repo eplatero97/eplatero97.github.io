@@ -15,7 +15,7 @@
 # in the templates via {{ site.myvariable }}.
 domain: eplatero97.github.io
 url: https://eplatero97.github.io
-title: "Deep Learning Re-Implemented" # "A Data Science Blog"
+title: "Decoding Intelligence" # "A Data Science Blog"
 email:
 description: >- # this means to ignore newlines until "baseurl:"
   A Deep Learning Implementation Blog
@@ -37,7 +37,10 @@ gist:
 permalink: /:categories/:title/
 paginate: 5 # amount of posts to show
 paginate_path: /page:num/
-timezone: # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+#paginate_path: /posts/page:num/
+timezone: America/Chicago
+#timezone: # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+future: true
 
 # Markdown Processing
 kramdown:
@@ -81,8 +84,8 @@ author:
   name             : "Erick Platero"
   avatar           : "/assets/images/bio_photo_2.JPG"
   bio              : # "My amazing bio about me"
-  location         : "Houston, TX"
-  email            : "eeplater@central.uh.edu"
+  location         : "Austin, TX"
+  #email            : "eeplater@central.uh.edu"
   links:
     - label: "Email"
       icon: "fas fa-fw fa-envelope-square"
@@ -124,6 +127,7 @@ defaults:
       path: ""
       type: posts
     values:
+      show_date: true
       layout: single
       author_profile: true
       read_time: true

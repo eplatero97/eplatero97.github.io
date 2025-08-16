@@ -5,7 +5,6 @@ title: "Gradient Descent"
 author: Erick Platero
 category: DL
 tags: [dl]
-author_profile: true
 
 ---
 # Gradient Descent

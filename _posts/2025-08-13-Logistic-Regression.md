@@ -5,7 +5,6 @@ title: "Logistic Regression"
 author: Erick Platero
 category: DL
 tags: [dl]
-author_profile: true
 
 ---
 # Logistic Regression

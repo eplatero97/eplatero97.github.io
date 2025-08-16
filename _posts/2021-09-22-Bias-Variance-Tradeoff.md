@@ -4,7 +4,6 @@ title: "Bias-Variance Tradeoff"
 author: Erick Platero
 category: stats
 tags: [stats]
-author_profile: true 
 ---
 
 # Bias-Variance Tradeoff

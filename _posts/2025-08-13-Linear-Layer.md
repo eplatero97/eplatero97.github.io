@@ -5,7 +5,6 @@ title: "Linear-Layer"
 author: Erick Platero
 category: DL
 tags: [dl]
-author_profile: true
 
 ---
 # Linear Layer

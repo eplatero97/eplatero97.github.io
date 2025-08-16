@@ -1,0 +1,37 @@
+<div id="progress-bar-container">
+  <div id="progress-bar"></div>
+</div>
+
+<style>
+  #progress-bar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    background-color: #f0f0f0;
+    z-index: 1000;
+  }
+
+  #progress-bar {
+    width: 0%;
+    height: 100%;
+    background-color: #007bff;
+    transition: width 0.1s ease-out;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const progressBar = document.getElementById('progress-bar');
+    const updateProgressBar = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.body.offsetHeight - window.innerHeight;
+      const scrolled = (scrollTop / docHeight) * 100;
+      progressBar.style.width = scrolled + '%';
+    };
+
+    window.addEventListener('scroll', updateProgressBar);
+    updateProgressBar(); // Initial update
+  });
+</script>

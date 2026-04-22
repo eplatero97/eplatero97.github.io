@@ -1,4 +1,16 @@
-_site
-.sass-cache
+# Astro
+dist/
+.astro/
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Jekyll (legacy)
+_site/
+.sass-cache/
 .jekyll-metadata
 Gemfile.lock
+
+# macOS
+.DS_Store

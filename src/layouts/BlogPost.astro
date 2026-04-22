@@ -1,15 +1,22 @@
 ---
 import Base from './Base.astro';
 
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
 interface Props {
   title: string;
   pubDate: Date;
   description?: string;
   category?: string;
   tags?: string[];
+  headings?: Heading[];
 }
 
-const { title, pubDate, description, category, tags = [] } = Astro.props;
+const { title, pubDate, description, category, tags = [], headings = [] } = Astro.props;
 
 const formattedDate = pubDate.toLocaleDateString('en-US', {
   year: 'numeric',
@@ -17,6 +24,9 @@ const formattedDate = pubDate.toLocaleDateString('en-US', {
   day: 'numeric',
   timeZone: 'UTC',
 });
+
+const tocHeadings = headings.filter(h => h.depth === 2 || h.depth === 3);
+const showToc = tocHeadings.length >= 3;
 ---
 <Base title={title} description={description}>
   <article>
@@ -33,8 +43,40 @@ const formattedDate = pubDate.toLocaleDateString('en-US', {
         )}
       </div>
     </header>
+
+    {showToc && (
+      <nav class="toc" aria-label="Table of contents">
+        <p class="toc-title">Contents</p>
+        <ol class="toc-list">
+          {tocHeadings.map(h => (
+            <li class:list={['toc-item', { 'toc-item--sub': h.depth === 3 }]}>
+              <a href={`#${h.slug}`}>{h.text}</a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+    )}
+
     <div class="prose">
       <slot />
     </div>
   </article>
 </Base>
+
+<script>
+  // Code copy buttons
+  document.querySelectorAll('pre').forEach(pre => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', () => {
+      const code = pre.querySelector('code')?.innerText ?? '';
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => (btn.textContent = 'Copy'), 2000);
+      });
+    });
+    pre.style.position = 'relative';
+    pre.appendChild(btn);
+  });
+</script>

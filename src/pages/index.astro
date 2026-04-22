@@ -6,8 +6,17 @@ const posts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
 ---
-<Base title="Decoding Intelligence" description="A Deep Learning Implementation Blog">
-  <h1 class="page-heading">Posts</h1>
+<Base title="Decoding Intelligence" description="A Deep Learning Implementation Blog by Erick Platero — ASIC Engineer at Qualcomm.">
+  <div class="home-intro">
+    <h1 class="page-heading">Decoding Intelligence</h1>
+    <p>
+      Implementation-focused deep learning tutorials by <a href="/about">Erick Platero</a> —
+      ASIC Engineer at Qualcomm working on LLM inference. Posts cover building ML primitives
+      from scratch: layers, activation functions, optimizers, and the math behind them.
+    </p>
+  </div>
+
+  <h2 class="posts-heading">Posts</h2>
   <ul class="post-list">
     {posts.map(post => (
       <li class="post-card">
@@ -18,7 +27,7 @@ const posts = (await getCollection('blog')).sort(
           {post.data.category && <span>·</span>}
           {post.data.category && <span>{post.data.category}</span>}
         </div>
-        <h2><a href={`/blog/${post.id.replace(/\.md$/, '')}/`}>{post.data.title}</a></h2>
+        <h3><a href={`/blog/${post.id.replace(/\.md$/, '')}/`}>{post.data.title}</a></h3>
         {post.data.tags && post.data.tags.length > 0 && (
           <div class="tags">
             {post.data.tags.map(tag => <span class="tag">{tag}</span>)}

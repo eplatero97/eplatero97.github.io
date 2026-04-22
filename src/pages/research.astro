@@ -1,0 +1,103 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base
+  title="Research"
+  description="Research and engineering work by Erick Platero — LLM inference, Speculative Decoding, and hardware validation at Qualcomm."
+>
+  <h1 class="page-heading">Research & Work</h1>
+
+  <section class="research-section">
+    <h2>Publications</h2>
+
+    <div class="research-card">
+      <h3>Greedy Tree Attention — Fast Tree Attention</h3>
+      <div class="research-meta">
+        <span>February 2025</span>
+        <span>San Diego, CA</span>
+      </div>
+      <p>
+        A compute-friendly tree attention implementation for detached Speculative Decoding
+        scenarios. The base implementation demonstrated a <strong>16% improvement</strong> over
+        greedy Speculative Decoding, enabling more efficient multi-candidate token generation
+        without the full cost of traditional tree attention.
+      </p>
+      <div class="research-links">
+        <a href="https://github.com/eplatero97" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="research-section">
+    <h2>Engineering</h2>
+
+    <div class="research-card">
+      <h3>vLLM QAIC Backend</h3>
+      <div class="research-meta">
+        <span>Qualcomm · Cloud AI 100</span>
+        <span>2022 – Present</span>
+      </div>
+      <p>
+        Developed and deployed the QAIC backend for
+        <a href="https://github.com/vllm-project/vllm" target="_blank" rel="noopener">vLLM</a>,
+        enabling large language model inference on Qualcomm Cloud AI 100 hardware at scale.
+        Includes integration of vanilla, PLD, and turbo Speculative Decoding techniques,
+        transitioning them from prototype to production.
+      </p>
+      <div class="research-links">
+        <a href="https://github.com/vllm-project/vllm" target="_blank" rel="noopener">vLLM</a>
+      </div>
+    </div>
+
+    <div class="research-card">
+      <h3>Valiant — Hardware Validation Framework</h3>
+      <div class="research-meta">
+        <span>Qualcomm · Cloud AI 100</span>
+        <span>2022 – Present</span>
+      </div>
+      <p>
+        Lead engineer of Valiant, Qualcomm's internal post-silicon validation framework.
+        Built on Python, Jenkins, and MongoDB, it automates hardware validation and testing
+        at scale across the Cloud AI 100 chip family.
+      </p>
+    </div>
+
+    <div class="research-card">
+      <h3>MLPerf v4.1 Benchmarks</h3>
+      <div class="research-meta">
+        <span>Qualcomm · Cloud AI 100</span>
+        <span>2024</span>
+      </div>
+      <p>
+        Led benchmark gathering for a private MLPerf v4.1 submission, measuring
+        inference throughput and latency for large language models on Qualcomm AI hardware.
+      </p>
+      <div class="research-links">
+        <a href="https://mlcommons.org/benchmarks/inference-datacenter/" target="_blank" rel="noopener">MLPerf</a>
+      </div>
+    </div>
+
+    <div class="research-card">
+      <h3>H-E-B Smart Customer Alert System</h3>
+      <div class="research-meta">
+        <span>H-E-B · Intern</span>
+        <span>2022</span>
+      </div>
+      <p>
+        Prototyped a computer vision algorithm to form the backbone of the Smart Customer
+        Alert System — automatically detecting when customers need assistance and alerting
+        store partners in real time.
+      </p>
+    </div>
+  </section>
+
+  <section class="research-section">
+    <h2>Skills</h2>
+    <div class="research-card">
+      <p><strong>ML Serving & Optimization:</strong> vLLM, PyTorch, ONNX, Speculative Decoding</p>
+      <p><strong>Agentic AI:</strong> MCP, crewAI</p>
+      <p><strong>HW Validation:</strong> Python, Jenkins, MongoDB</p>
+      <p><strong>Observability:</strong> Prometheus, Grafana, Docker</p>
+    </div>
+  </section>
+</Base>

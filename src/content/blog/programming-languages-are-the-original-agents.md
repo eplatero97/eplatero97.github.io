@@ -4,6 +4,7 @@ pubDate: 2026-06-21
 description: "A short essay arguing that programming languages haven't died — they've been repositioned as tools for AI agents."
 category: "AI"
 tags: ["ai", "programming-languages", "agents", "opinion"]
+cover: "/assets/images/programming-languages-agents-cover.png"
 ---
 
 # Programming Languages Are the Original Agents

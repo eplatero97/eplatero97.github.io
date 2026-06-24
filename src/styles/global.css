@@ -179,6 +179,15 @@ footer {
   line-height: 1.25;
 }
 
+.post-cover {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: 6px;
+  margin-bottom: 2.5rem;
+  display: block;
+}
+
 .post-meta {
   display: flex;
   align-items: center;

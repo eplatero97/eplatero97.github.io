@@ -14,9 +14,10 @@ interface Props {
   category?: string;
   tags?: string[];
   headings?: Heading[];
+  cover?: string;
 }
 
-const { title, pubDate, description, category, tags = [], headings = [] } = Astro.props;
+const { title, pubDate, description, category, tags = [], headings = [], cover } = Astro.props;
 
 const formattedDate = pubDate.toLocaleDateString('en-US', {
   year: 'numeric',
@@ -43,6 +44,10 @@ const showToc = tocHeadings.length >= 3;
         )}
       </div>
     </header>
+
+    {cover && (
+      <img src={cover} alt="" class="post-cover" aria-hidden="true" />
+    )}
 
     {showToc && (
       <nav class="toc" aria-label="Table of contents">

@@ -112,25 +112,8 @@ footer {
 }
 
 .post-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.25rem;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 2rem;
-}
-
-.post-card-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.post-card-thumb {
-  flex-shrink: 0;
-  width: 96px;
-  height: 72px;
-  object-fit: cover;
-  border-radius: 4px;
-  opacity: 0.9;
 }
 
 .post-card:last-child { border-bottom: none; }

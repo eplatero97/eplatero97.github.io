@@ -2,7 +2,7 @@
 title: "Linear Layer From Scratch with PyTorch"
 pubDate: 2021-12-28
 category: "DL"
-tags: ["dl"]
+tags: ["DL"]
 ---
 **Forward/Backward pass implementation?**
 

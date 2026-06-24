@@ -2,7 +2,7 @@
 title: "Linear Layer"
 pubDate: 2025-08-13
 category: "DL"
-tags: ["dl"]
+tags: ["DL"]
 ---
 # Linear Layer
 

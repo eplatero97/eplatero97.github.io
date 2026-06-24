@@ -2,7 +2,7 @@
 title: "Gradient Descent"
 pubDate: 2023-03-15
 category: "DL"
-tags: ["dl"]
+tags: ["DL"]
 ---
 # Gradient Descent
 

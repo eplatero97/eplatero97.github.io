@@ -2,7 +2,7 @@
 title: "Dropout Layer From Scratch with PyTorch"
 pubDate: 2022-01-02
 category: "DL"
-tags: ["dl"]
+tags: ["DL"]
 ---
 During training, the `nn.Dropout()` layer is a: 
 

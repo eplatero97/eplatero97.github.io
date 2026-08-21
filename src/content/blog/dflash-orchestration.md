@@ -110,24 +110,40 @@ That parallelization is the reason D-Flash's TTFT can stay low even though the d
 
 Once the context portion of the cache is populated, the draft model runs its normal speculative-decoding forward pass. Query tokens produce their own K/V entries, which are written into the later cache positions and used by the draft model's attention.
 
-The "rich embedding → giant KV matmul" path is therefore not the only cache update mechanism. It is the context-injection path. On later decode steps, newly accepted tokens can be submitted to the same `precompute_and_store_context_kv()` path so they become fresh context entries, while the current speculative query tokens are handled by the ordinary DLM forward pass.
+After verification, the "rich embedding → giant KV matmul" path is again executed and injected into the draft K/V entries associated with the accepted tokens.
 
-## The Key to Injection: a Shared Projection Interface
+## The Key to Injection: Synchronizing the DLM with the Target
 
-The key step that makes KV-cache injection stand out is that the DLM's
-attention projections are designed to work with two kinds of inputs:
+The key idea is that KV injection anchors the DLM to the target model's committed prefix. Before each draft pass, the adapter turns the target's selected hidden states into K/V memory for every DLM layer. That injected memory is the synchronization point: once the target verifies a block, the accepted tokens are re-conditioned on the refreshed target prefix, and the next draft starts from there.
 
-- ordinary draft-model hidden states during speculative decoding
-- target-derived hidden states mapped into the DLM's hidden-size space during
-  context injection
+The injected K/V state is only temporary working memory for proposing the next block. After verification, any rejected suffix is discarded, and the DLM is re-anchored to the target's updated context before drafting again.
 
-The same DLM K/V projection weights can therefore be reused in both paths.
-The target model supplies the context features, an adapter maps them into the
-DLM's expected representation, and the DLM projections turn them into the
-layer-specific K/V entries.
+```text
+committed target prefix
+        │
+        ▼
+selected target hidden states
+        │
+        ▼
+adapter / projection (W_c)
+        │
+        ▼
+injected K/V memory in all DLM layers
+        │
+        ▼
+DLM proposes a masked token block
+        │
+        ▼
+target verifies and commits a prefix
+        │
+        └──► refresh target-conditioned prefix
+```
 
-This is less like merging two branches and more like adapting two compatible
-representations to the same interface.
+Training makes that synchronization point explicit. Given a ground-truth prefix, the frozen target provides hidden states, the DLM predicts a masked future block, and a weighted cross-entropy loss compares those predictions with the true future tokens. Gradients flow through the injected K/V path into $W_c$; the model is learning the compact target-side memory that best conditions the DLM on the committed prefix, not a target hidden-state replica. Earlier positions receive more loss weight because an early drafting error invalidates the rest of the speculative block.
+
+$$
+\mathcal{L} = -\sum_{t=1}^{T} w_t \log p_\theta(y_t \mid x, y_{<t})
+$$
 
 # What the DLM Looks Like
 

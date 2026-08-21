@@ -19,6 +19,8 @@ npm run preview         # preview production build locally
 
 **Content:** Posts live in `src/content/blog/` as `.md` files. The collection schema is in `src/content/config.ts` — required fields are `title` and `pubDate`; `category` and `tags` are optional.
 
+**Blog edits:** When editing posts in `src/content/blog/`, preserve the tone of the original blog while incorporating all new content requested by the user.
+
 **Routing:** `src/pages/blog/[...slug].astro` generates one page per post. The slug strips `.md` from `post.id`.
 
 **Layouts:** `src/layouts/Base.astro` is the HTML shell (nav, footer, global CSS). `src/layouts/BlogPost.astro` wraps post content with a header (title, date, tags).

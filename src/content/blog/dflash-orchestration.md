@@ -15,13 +15,34 @@ D-Flash is a speculative decoding model that uses a diffusion-like model to gene
 
 D-Flash has two primary innovations: (i) Draft KV cache injection and (ii) model architecture. Both of these innovations essentially parallelize bottlenecks in traditional speculative decoding techniques. 
 
-We will discuss each in order but will primarily review innovation (i).
+A useful annotation that contrasts these innovations with previous speculative decoding methods is:
+
+$$
+\begin{aligned}
+\text{Vanilla draft:}\quad
+& p(x_i \mid x_{<i}) \\
+\text{EAGLE:}\quad
+& p(x_i \mid x_{<i}, e^{\text{target}}_{<i}) \\
+\text{D-Flash:}\quad
+& p(x_{i:i+\gamma-1} \mid x_{i-1}, \texttt{[MASK]}^{\times \gamma},\ KV_{\text{DFLASH}})
+\end{aligned}
+$$
+
+$$
+\text{where } KV_{\text{DFLASH}}=\mathcal{A}(e^{\text{target}}_{<i})
+$$
+
+Here, $\mathcal{A}$ denotes the KV-injection adapter (parameterized by $W_c$).
+
+The key shift in D-Flash is that target-side information conditions drafting through injected KV memory. Block-wise parallel proposals come from running $\gamma$ MASK positions together, with positional (RoPE) encoding separating each slot.
+
+We will discuss each innovation in order but will primarily review (i).
 
 ## KV Cache Injection
 
 Like EAGLE, D-Flash conditions its speculations on a subset of hidden states from the target model. However, instead of feeding these hidden states as inputs along with tokens, the compressed projection of these hidden states is injected directly into the KV cache of the draft model... *mostly* IN PARALLEL!
 
-This is huge. The traditional layer-stacked architecture of LLMs is bypassed and the KV$ of each layer can be computed independently/in-parallel (don't you wish we could do this for all LLMs?). 
+This is huge. The traditional layer-stacked architecture of LLMs is bypassed and the K/V of each layer can be computed independently/in-parallel (don't you wish we could do this for all LLMs?). 
 
 This innovation is much more of a benefit for D-Flash specifically as well since its draft model is usually a 5-layer deep architecture (unlike EAGLE which is usually a 1-layer draft model).
 

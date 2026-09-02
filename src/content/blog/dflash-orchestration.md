@@ -20,23 +20,21 @@ A useful annotation that contrasts these innovations with previous speculative d
 $$
 \begin{aligned}
 \text{Vanilla draft:}\quad
-& p(x_i \mid x_{<i}) \\
+& q_\phi(\text{next draft token} \mid \text{prefix}, \text{bonus token}, \text{previous draft tokens}) \\
 \text{EAGLE:}\quad
-& p(x_i \mid x_{<i}, e^{\text{target}}_{<i}) \\
+& q_\phi(\text{next draft token} \mid \text{prefix}, \text{bonus token}, \text{previous draft tokens}, \text{target hidden states}) \\
 \text{D-Flash:}\quad
-& p(d_{i+1:i+\gamma} \mid x_{<i}, b_i, \texttt{[MASK]}_{i+1:i+\gamma},\ KV_{\text{DFLASH}})
+& q_\phi(\text{draft block} \mid \text{bonus token}, \text{MASK block}, KV_{\text{DFLASH}})
 \end{aligned}
 $$
 
 $$
-\text{where } KV_{\text{DFLASH}}=\mathcal{A}(e^{\text{target}}_{<i}; W_c)
+\text{where } KV_{\text{DFLASH}}=\mathcal{A}(e^{\text{target}}_{<i})
 $$
 
-Here, $b_i$ is the target-sampled bonus token, or anchor token, at position $i$. It is input to D-Flash, but it is not one of the speculative tokens sampled from MASK positions. $\gamma$ is the number of usable draft tokens, and $\mathcal{A}$ denotes the complete KV-injection pipeline: the learned projection, normalization, RoPE processing, and cache write that transform target hidden states into DLM KV memory. $W_c$ is the learned projection component inside that pipeline.
+Here, $q_\phi$ is the draft proposal distribution. The key difference is that Vanilla and EAGLE still propose the next draft token autoregressively, while D-Flash proposes a whole draft block from the bonus token, MASK positions, and injected DLM KV memory. $\gamma$ is the number of usable draft tokens, and $\mathcal{A}$ denotes the complete KV-injection pipeline: the learned projection, normalization, RoPE processing, and cache write that transform target hidden states into DLM KV memory.
 
-This is the detail I found easiest to get wrong: D-Flash is not autoregressive inside the drafted block. It runs over $B=\gamma+1$ query positions, but the first position is the bonus token and vLLM samples only the $\gamma=B-1$ MASK-position outputs as draft proposals. The bonus-position output is computed by the forward pass, but it is discarded for proposal sampling.
-
-For example, the query block $[b_3,\ \texttt{[MASK]}_4]$ has $B=2$ and $\gamma=1$. D-Flash computes outputs for positions $3$ and $4$, but the usable proposal is only $\texttt{[MASK]}_4 \rightarrow d_4$. It is not an autoregressive shift that produces $[d_4,d_5]$ from two query tokens. To get $[d_4,d_5]$, the block must be $[b_3,\ \texttt{[MASK]}_4,\ \texttt{[MASK]}_5]$.
+The important distinction is that D-Flash is not autoregressive inside the drafted block. It processes the bonus token and the $\gamma$ MASK slots in one pass, then uses only the MASK-position logits as draft proposals. In vLLM terms, a block size of $B$ gives $\gamma=B-1$ usable draft tokens because the bonus-token output is just an anchor, not a proposal.
 
 The key shift in D-Flash is that target-side information conditions drafting through injected KV memory while the bonus token and $\gamma$ MASK positions are processed together, with positional (RoPE) encoding separating each slot.
 
@@ -154,7 +152,6 @@ Each round has two cache sources. The committed context is target-derived, while
 │ 3. PARALLEL DLM DRAFT                                      │
 │                                                            │
 │ input_ids: [bᵢ, MASKᵢ₊₁, MASKᵢ₊₂, MASKᵢ₊₃, MASKᵢ₊₄]      │
-│ positions: [ i,  i+1,  i+2,  i+3,  i+4]                   │
 │                                                            │
 │ DLM KV[i..i+4] ← provisional draft-derived K/V             │
 │ discarded output: bonus-position output at i               │
@@ -186,24 +183,6 @@ Each round has two cache sources. The committed context is target-derived, while
 ```
 
 The diagram's two cache regions are the essential distinction. Boxes 1, 2, and 5 contain target-derived K/V for the committed prefix; box 3 adds DLM-generated K/V only for the current proposal. Although the target computes verification logits for all four drafts in parallel, the first mismatch ends the accepted draft prefix, so every later provisional entry is discarded. The next target bonus token is then appended to that prefix before the DLM cache is refreshed.
-
-Training makes this synchronization point explicit. Given a ground-truth prefix, the frozen target provides hidden states, the DLM predicts a masked future block, and a weighted cross-entropy loss compares those predictions with the true future tokens. Gradients flow through the injected K/V path into $W_c$; the model is learning the compact target-side memory that best conditions the DLM on the committed prefix, not a target hidden-state replica. Earlier positions receive more loss weight because an early drafting error invalidates the rest of the speculative block.
-
-$$
-\mathcal{L}
-=
--\sum_{j=1}^{\gamma}
-w_j
-\log p_\theta
-\left(
-  y_{i+j}
-  \mid
-  x_{<i},
-  b_i,
-  \texttt{[MASK]}_{i+1:i+\gamma},
-  KV_{\mathrm{DFLASH}}
-\right)
-$$
 
 # What the DLM Looks Like
 

@@ -9,13 +9,13 @@ cover: "/assets/images/dflash_kv_cache_injection.png"
 
 # D-Flash?
 
-D-Flash is a speculative decoding model that uses a diffusion-like model to generate $\gamma$ draft tokens in parallel. This is similar to the Medusa technique, but instead of using a simple MLP, D-Flash uses the expressive power of the attention mechanism. The ability to generate tokens in parallel while staying expressive are two of the qualities that have made D-Flash so interesting, and have helped inspire new ideas like Gemma 4 Diffusion and D-Spark.
+D-Flash is a speculative decoding model that uses a diffusion-like model to generate $\gamma$ draft tokens in parallel. This is similar to the Medusa technique, but instead of using a simple MLP, D-Flash uses the expressive power of the attention mechanism. The ability to generate tokens in parallel while staying expressive are two of the qualities that have made D-Flash so popular, and have helped inspire new ideas like D-Spark and D-Flash 2.
 
 # Is D-Flash Really Flash?
 
 D-Flash has two primary innovations: (i) Draft KV cache injection and (ii) model architecture. Both of these innovations essentially parallelize bottlenecks in traditional speculative decoding techniques. 
 
-A useful annotation that contrasts these innovations with previous speculative decoding methods is:
+A useful annotation that contrasts these innovations with previous methods is:
 
 $$
 \begin{aligned}
@@ -29,16 +29,12 @@ $$
 $$
 
 $$
-\text{where } KV_{\text{DFLASH}}=\mathcal{A}(e^{\text{target}}_{<i})
+\text{where } KV_{\text{DFLASH}}=\mathcal{A}(\text{target hidden states})
 $$
 
-Here, $q_\phi$ is the draft proposal distribution. The key difference is that Vanilla and EAGLE still propose the next draft token autoregressively, while D-Flash proposes a whole draft block from the bonus token, MASK positions, and injected DLM KV memory. $\gamma$ is the number of usable draft tokens, and $\mathcal{A}$ denotes the complete KV-injection pipeline: the learned projection, normalization, RoPE processing, and cache write that transform target hidden states into DLM KV memory.
+Here, $q_\phi$ is the draft proposal distribution, $\text{prefix}$ are the prompt+verified tokens, $\text{target hidden states}$ denotes the extracted hidden states from the target model prefix, and $\mathcal{A}$ represents the complete KV-injection algorithm: the learned projection, normalization, RoPE processing, and cache write that transform target hidden states into DLM KV memory. 
 
-The important distinction is that D-Flash is not autoregressive inside the drafted block. It processes the bonus token and the $\gamma$ MASK slots in one pass, then uses only the MASK-position logits as draft proposals. In vLLM terms, a block size of $B$ gives $\gamma=B-1$ usable draft tokens because the bonus-token output is just an anchor, not a proposal.
-
-The key shift in D-Flash is that target-side information conditions drafting through injected KV memory while the bonus token and $\gamma$ MASK positions are processed together, with positional (RoPE) encoding separating each slot.
-
-We will discuss each innovation in order but will primarily review (i).
+The key difference is that Vanilla and EAGLE still propose the $\text{next draft token}$ autoregressively, while D-Flash proposes a whole $\text{draft block}$ from the bonus token, MASK positions (length $\gamma$), and injected DLM KV memory.
 
 ## KV Cache Injection
 
@@ -46,21 +42,23 @@ Like EAGLE, D-Flash conditions its speculations on a subset of hidden states fro
 
 This is huge. The traditional layer-stacked architecture of LLMs is bypassed and the K/V of each layer can be computed independently (don't you wish we could do this for all LLMs?).
 
-Let's look at how this is done in vLLM 0.23.0.
+Let's look at how this is done in vLLM `0.23.0`.
 
 ## Rich Embeddings + Parallel KV Projection Implementation
 
-During the target model's forward pass, D-Flash extracts hidden states from multiple target-model layers. For each token, those hidden states are concatenated and then compressed into a single "rich embedding." This embedding is surprisingly expressive: it contains enough information for the draft model to reconstruct all of its own KV-cache entries.
+During the target model's forward pass, D-Flash extracts hidden states from multiple target-model layers. For each token, those hidden states are concatenated and then compressed into a single "rich embedding." This embedding has proven to be expressive enough for the draft model to reconstruct all of its own KV-cache entries from it.
 
-If three target-model layers are extracted, a token might start as three vectors of size `H_tlm`, or `[3 * H_tlm]` after concatenation. The auxiliary FC maps that wide representation into `[H_dlm]`, the draft model's hidden size. The result is the compact hidden state that feeds the KV injection path.
+For example, if three target-model layers are extracted, a token might start as three vectors of size `H_tlm`, or `[3 * H_tlm]` after concatenation. The auxiliary FC maps that wide representation into `[H_dlm]`, the draft model's hidden size. The result is the compact hidden state that feeds the KV-injection path.
 
-Here is the whole process at a high level:
+Here is the whole KV-injection process at a high level:
 
-![D-Flash KV cache injection during prefill](/assets/images/dflash_kv_cache_injection.png)
+![D-Flash KV cache injection](/assets/images/dflash_kv_cache_injection.png)
 
 *The target model supplies the hidden states; the DLM's layers supply the K/V projections; the green block writes the resulting K/V tensors into the DLM cache.*
 
-The implementation behind the green block is intentionally compact. In vLLM, this logic lives in `precompute_and_store_context_kv` in `vllm/model_executor/models/qwen3_dflash.py`. The fused K/V projection weights are built once after loading the DLM weights. Each layer contributes the K/V rows of its QKV projection — `qkv_proj.weight[q_size:]` removes the query rows — and those slices are concatenated into one large matrix.
+The figure shows one of D-Flash's most clever tricks: after attaining the compact hidden states, it re-uses the draft model KV-weight projections to transform the rich embedding into its layer-corresponding KV entries representation in parallel. As we will see in the next section, this meas that the draft KV-projections have been trained to accept inputs from the compressed target model hidden states and the draft model's own hidden state inputs to the attention layer. 
+
+In vLLM, this logic lives in `precompute_and_store_context_kv` in `vllm/model_executor/models/qwen3_dflash.py`. The fused KV-projection weights are built once after loading the DLM weights. Each layer contributes the KV rows of its QKV projection — `qkv_proj.weight[q_size:]` removes the query rows — and those slices are concatenated into one large matrix.
 
 ```python
 # 1. RMSNorm on input hidden states — shared norm before the GEMM.
@@ -111,7 +109,7 @@ for i in range(L):
     )
 ```
 
-Let's unpack this. The first `rms_norm` is shared across all context states before the fused GEMM. The single `F.linear` produces K and V projections for every context token and every DLM layer at once. Instead of invoking one projection per layer, vLLM uses the block matrix built from all of those layer-specific K/V weights.
+The first `rms_norm` is shared across all context states before the fused GEMM. The single `F.linear` produces K and V projections for every context token and every DLM layer at once. Instead of invoking one projection per layer, vLLM uses the block matrix built from all of those layer-specific K/V weights.
 
 The reshape and permutation turn the flat output into `[2, L, num_ctx, nkv, head_dim]`. The leading dimension separates K from V; the next dimension identifies the DLM layer. This is what lets the rest of the method process every layer's cache entries without running the DLM over the prompt.
 
@@ -121,22 +119,22 @@ At this point, the DLM's cache entries for the target-model context are populate
 
 ## What Happens After Injection
 
-Once the context portion of the cache is populated, the draft model runs its block-parallel speculative-decoding forward pass. The bonus token and MASK query tokens produce their own K/V entries, which are written into the later cache positions and used by the draft model's attention. The draft model computes an output for the bonus token too, but vLLM samples only the MASK-position outputs.
+Once the context portion of the cache is populated, the draft model runs its block-parallel speculative-decoding forward pass. The bonus token and MASK query tokens produce their own K/V entries, which are written into the later cache positions and used by the draft model's attention. The draft model computes logits for the bonus position too, but vLLM samples only the MASK-position logits.
 
-After verification, the "rich embedding → giant KV matmul" path runs again for the updated committed prefix. Its target-derived K/V entries replace the provisional DLM state used only to make the rejected-or-accepted draft proposal.
+After verification, the "rich embedding → giant KV matmul" path runs again for the updated committed prefix. Its target-derived KV-entries replace the provisional DLM state used only to make the rejected-or-accepted draft proposal.
 
 ## The Key to Injection: Synchronizing the DLM with the Target
 
-The key idea is that KV injection anchors the DLM to the target model's committed prefix. Before each draft pass, the adapter turns the target's selected hidden states into K/V memory for every DLM layer. That injected memory is the synchronization point: after the target verifies a block, the next draft begins from the updated target prefix rather than the DLM's previous proposal.
+The key idea is that KV injection anchors the DLM to the target model's committed prefix. Before each draft pass, the adapter turns the target's selected hidden states into KV-memory for every DLM layer. That injected memory is the synchronization point: after the target verifies a block, the next draft begins from the updated target prefix rather than the DLM's previous proposal.
 
-Each round has two cache sources. The committed context is target-derived, while the DLM writes provisional K/V entries for its bonus token, or anchor token, and masked draft slots. The target resolves that provisional suffix by accepting a prefix and discarding the rest before the DLM is re-anchored.
+Each round has two cache sources. The committed context is target-derived, while the DLM writes provisional KV-entries for its bonus token, and masked draft slots. The target resolves that provisional suffix by accepting a prefix and discarding the rest before the DLM is re-anchored.
 
 ```text
 ┌────────────────────────────────────────────────────────────┐
 │ 1. COMMITTED TARGET PREFIX                                 │
 │                                                            │
-│ tokens: [x₀ ... xᵢ₋₁]                                     │
-│ target hidden states: [h₀ ... hᵢ₋₁]                       │
+│ tokens: [x₀ ... xᵢ₋₁]                                      │
+│ target hidden states: [h₀ ... hᵢ₋₁]                        │
 └─────────────────────────────┬──────────────────────────────┘
                               │ project target hidden states
                               │ into DLM K/V
@@ -151,38 +149,38 @@ Each round has two cache sources. The committed context is target-derived, while
 ┌────────────────────────────────────────────────────────────┐
 │ 3. PARALLEL DLM DRAFT                                      │
 │                                                            │
-│ input_ids: [bᵢ, MASKᵢ₊₁, MASKᵢ₊₂, MASKᵢ₊₃, MASKᵢ₊₄]      │
+│ input_ids: [bᵢ, MASKᵢ₊₁, MASKᵢ₊₂, MASKᵢ₊₃, MASKᵢ₊₄]        │
 │                                                            │
 │ DLM KV[i..i+4] ← provisional draft-derived K/V             │
-│ discarded output: bonus-position output at i               │
-│ usable outputs: [dᵢ₊₁, dᵢ₊₂, dᵢ₊₃, dᵢ₊₄]                 │
+│ discarded logit: bonus-position logit at i                 │
+│ usable logits: [dᵢ₊₁, dᵢ₊₂, dᵢ₊₃, dᵢ₊₄]                    │
 └─────────────────────────────┬──────────────────────────────┘
                               │ four proposed tokens
                               ▼
 ┌────────────────────────────────────────────────────────────┐
 │ 4. TARGET VERIFICATION                                     │
 │                                                            │
-│ proposed: [dᵢ₊₁, dᵢ₊₂, dᵢ₊₃, dᵢ₊₄]                       │
-│           [ ✓,  ✓,  ✗,  ✗ ]                                │
+│ proposed: [dᵢ₊₁, dᵢ₊₂, dᵢ₊₃, dᵢ₊₄]                         │
+│           [ ✓,  ✓,  ✗,  ✗ ]                              │
 │                                                            │
 │ next target bonus token: bᵢ₊₃                              │
-│ committed: [x₀ ... xᵢ₋₁, bᵢ, dᵢ₊₁, dᵢ₊₂, bᵢ₊₃]           │
-│ rejected:  [dᵢ₊₃, dᵢ₊₄]                                   │
+│ committed: [x₀ ... xᵢ₋₁, bᵢ, dᵢ₊₁, dᵢ₊₂, bᵢ₊₃]             │
+│ rejected:  [dᵢ₊₃, dᵢ₊₄]                                    │
 └─────────────────────────────┬──────────────────────────────┘
                               │ discard rejected suffix
                               ▼
 ┌────────────────────────────────────────────────────────────┐
 │ 5. REFRESH AND RE-ANCHOR                                   │
 │                                                            │
-│ keep accepted tokens; truncate provisional draft KV         │
-│ recompute target hidden states for the updated prefix       │
-│ inject refreshed target-derived DLM K/V                     │
+│ keep accepted tokens; truncate provisional draft KV        │
+│ recompute target hidden states for the updated prefix      │
+│ inject refreshed target-derived DLM K/V                    │
 │                                                            │
 │ → draft the next block                                     │
 └────────────────────────────────────────────────────────────┘
 ```
 
-The diagram's two cache regions are the essential distinction. Boxes 1, 2, and 5 contain target-derived K/V for the committed prefix; box 3 adds DLM-generated K/V only for the current proposal. Although the target computes verification logits for all four drafts in parallel, the first mismatch ends the accepted draft prefix, so every later provisional entry is discarded. The next target bonus token is then appended to that prefix before the DLM cache is refreshed.
+The diagram's two cache regions are the essential distinction. Boxes 1, 2, and 5 contain target-derived KV for the committed prefix; box 3 adds DLM-generated KV only for the current proposal. Although the target computes verification logits for all four drafts in parallel, the first mismatch ends the accepted draft prefix, so every later provisional entry is discarded. The next bonus token is the target model's first token at the mismatch position, or the target token after the final draft token if all drafts are accepted.
 
 # What the DLM Looks Like
 
@@ -190,7 +188,7 @@ The KV-injection path is unusual, but the DLM itself is still a small Qwen3-styl
 
 First, it has only a few layers — typically one or a small number, rather than the dozens of layers in the target model. This keeps the drafting model lightweight while still giving it more expressive power than a single attention layer. The fused KV projection is what makes those extra layers affordable during context setup.
 
-Second, D-Flash uses bidirectional attention over the injected context. Each query position can attend to the full target-model context instead of only the tokens to its left. This is safe because the DLM is proposing tokens, not making the final decision: the target model verifies the proposal afterward.
+Second, D-Flash uses non-causal attention during the draft block. This sounds fancy, but the intuition is simple: the mask is still there to keep attention inside the valid KV cache slots for the current request. It blocks other requests, unused cache space, and invalid positions. What D-Flash removes is the usual left-to-right triangle. A normal decoder lets position 4 see positions 1-3, but prevents position 1 from seeing positions 2-4. D-Flash does not want that little autoregressive chain inside the draft block. The bonus token and MASK positions can all attend across the valid block together, which is what lets one forward pass produce different logits for every draft slot.
 
 Finally, the draft positions begin as MASK tokens and are processed together with the bonus token. The MASK embeddings start out identical, but positional information and attention to the injected context make each position's hidden state different. One forward pass can therefore produce a different prediction for every draft position. This is block-parallel prediction, not an autoregressive shift inside the block: the logit at a MASK position predicts that position's token, and the logit at the bonus-token position is ignored for speculative proposals.
 
@@ -203,7 +201,7 @@ D-Flash still needs to populate the draft model's KV cache, but it reuses hidden
 For an autoregressive drafter, the drafting cost grows with the number of proposed tokens:
 
 $$
-T_{\text{draft}}^{\text{AR}} \propto \gamma.
+T_{\text{draft}} \propto \gamma.
 $$
 
 D-Flash instead processes the masked block in one forward pass, so its draft-side cost is only weakly dependent on $\gamma$. This keeps TPOT, or per-round output latency, from being tightly bound to $\gamma$: increasing $\gamma$ can increase the number of tokens produced per round without multiplying the draft cost. In vLLM terms, a D-Flash checkpoint with block size $B$ should use `num_speculative_tokens = B - 1`; for example, `z-lab/Qwen3-4B-DFlash-b16` has $B=16$, so its vLLM example uses `num_speculative_tokens = 15`. Realized end-to-end latency still depends on verification cost, memory traffic, and how many drafted tokens are accepted.

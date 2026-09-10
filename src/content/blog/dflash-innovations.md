@@ -168,7 +168,7 @@ Each round has two cache sources. The committed context is target-derived, while
 │ 4. TARGET VERIFICATION                                     │
 │                                                            │
 │ proposed: [dᵢ₊₁, dᵢ₊₂, dᵢ₊₃, dᵢ₊₄]                         │
-│           [ ✓,  ✓,  ✗,  ✗ ]                              │
+│           [ ✓,  ✓,  ✗,  ✗ ]                                |
 │                                                            │
 │ next target bonus token: bᵢ₊₃                              │
 │ committed: [x₀ ... xᵢ₋₁, bᵢ, dᵢ₊₁, dᵢ₊₂, bᵢ₊₃]             │

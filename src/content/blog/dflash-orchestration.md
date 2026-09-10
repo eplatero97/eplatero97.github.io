@@ -201,13 +201,7 @@ Finally, the draft positions begin as MASK tokens and are processed together wit
 
 # Does It Actually Deliver?
 
-Finally, let's get to performance. All of the machinery above buys two things: the fused KV projection keeps TTFT low (no layer-by-layer forward pass over the prefix), and the block-parallel draft keeps per-round cost nearly flat in $\gamma$. Compare that to an autoregressive drafter, whose cost grows with every proposed token:
-
-$$
-T_{\text{draft}} \propto \gamma.
-$$
-
-The [D-Flash paper](https://arxiv.org/abs/2602.06036) reports up to **~6× lossless speedup** on Qwen3-8B, and roughly **2.5× faster than EAGLE-3**, the previous state-of-the-art speculative decoder (reasoning-heavy workloads land around ~4.5×). Here is a representative slice on Qwen3-8B with greedy decoding, as speedup over the vanilla autoregressive baseline:
+Finally, let's get to performance. All of the innovations above buys two things: the fused KV projection keeps TTFT low (no layer-by-layer forward pass over the prefix), and the block-parallel draft keeps per-round cost nearly flat in $\gamma$. Compare that to an autoregressive drafter, whose cost grows with every proposed token ($T_{\text{draft}} \propto \gamma$). The [D-Flash paper](https://arxiv.org/abs/2602.06036) reports up to **~6× lossless speedup** on Qwen3-8B, and roughly **2.5× faster than EAGLE-3**, the previous state-of-the-art speculative decoder (reasoning-heavy workloads land around ~4.5×). Here is a representative slice on Qwen3-8B with greedy decoding, as speedup over the vanilla autoregressive baseline:
 
 | Task | Vanilla | EAGLE-3 | D-Flash |
 |------|---------|---------|---------|

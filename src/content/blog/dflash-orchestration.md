@@ -9,7 +9,7 @@ cover: "/assets/images/dflash_kv_cache_injection.png"
 
 # D-Flash?
 
-D-Flash is a speculative decoding model that uses a block diffusion model to generate $\gamma$ draft tokens in parallel. This is similar to the Medusa technique, but instead of using a simple MLP, D-Flash uses the expressive power of the attention mechanism. The ability to generate tokens in parallel while staying expressive are two of the qualities that have made D-Flash so popular, and have helped inspire new ideas like D-Spark and D-Flash 2.
+D-Flash is a block diffusion model that generates $\gamma$ draft tokens in parallel. This is similar to the Medusa technique, but instead of using a simple MLP, D-Flash uses the expressive power of the attention mechanism. Generating tokens in parallel while staying expressive are two of the qualities that have made D-Flash so popular, and have helped inspire new ideas like [D-Spark](https://arxiv.org/pdf/2607.05147) and [D-Flash 2](https://inco.ai/blog/dflash2/).
 
 # Is D-Flash Really Flash?
 
@@ -47,7 +47,7 @@ We'll take each innovation in turn, starting with the KV cache injection.
 
 Like EAGLE, D-Flash conditions its speculations on a subset of hidden states from the target model. However, instead of feeding these hidden states as inputs along with token embeddings, the compressed projection of these target hidden states is injected directly into the KV cache of the draft model... *mostly* IN PARALLEL!
 
-What this means is that from those compressed projections, a single fused projection produces every DLM layer's KV entries at once, bypassing the traditional layer-stacked architecture of LLMs (don't you wish we could do this for all LLMs?). This parallelization keeps the KV update and its cost during TTFT minimal.
+What this means is that from those compressed projections, a single fused projection produces every DLM layer's KV entries at once, bypassing the traditional layer-stacked architecture of LLMs (don't you wish we could do this for all LLMs?). This parallelization keeps the KV update and its cost during time-to-first-token (TTFT) minimal.
 
 Let's look at how this is done in vLLM `0.23.0`.
 
@@ -191,17 +191,17 @@ The diagram's two cache regions are the essential distinction. Boxes 1, 2, and 5
 
 # What the DLM Looks Like
 
-The KV-injection path is novel, but the DLM itself is still a small Qwen3-style decoder. Its architecture is specifically special in three ways.
+The KV-injection path is novel, but the DLM itself is still a small Qwen3-style decoder. Its architecture is special in three ways.
 
 First, it has only a few layers — typically five, rather than a single layer like EAGLE tends to deploy. This keeps the drafting model lightweight while still giving it more expressive power than a single attention layer. The fused KV projection is what makes those extra layers affordable during context setup.
 
-Second, D-Flash uses non-causal attention during the draft block. This sounds fancy, but the intuition is simple: bidirectional just means each query can attend across all context tokens plus the newly generated block entries — both left and right — instead of the usual left-to-right lower triangular matrix. 
+Second, D-Flash uses non-causal attention during the draft block. This sounds fancy, but the intuition is simple: bidirectional just means each query can attend across all context tokens plus the newly generated block entries — both left and right — instead of the usual left-to-right lower triangular matrix.
 
 Finally, the draft positions begin as MASK tokens and are processed together with the bonus token. The MASK embeddings start out identical, but positional information and attention to the injected context make each position's hidden state different. One forward pass can therefore produce a different prediction for every draft position. This is block-parallel prediction, not an autoregressive shift inside the block: the logit at a MASK position predicts that position's token, and the logit at the bonus-token position is ignored for speculative proposals.
 
 # Does It Actually Deliver?
 
-Finally, let's get to performance. All of the machinery above buys two things: the fused KV projection keeps time-to-first-token low (no layer-by-layer forward pass over the prefix), and the block-parallel draft keeps per-round cost nearly flat in $\gamma$. Compare that to an autoregressive drafter, whose cost grows with every proposed token:
+Finally, let's get to performance. All of the machinery above buys two things: the fused KV projection keeps TTFT low (no layer-by-layer forward pass over the prefix), and the block-parallel draft keeps per-round cost nearly flat in $\gamma$. Compare that to an autoregressive drafter, whose cost grows with every proposed token:
 
 $$
 T_{\text{draft}} \propto \gamma.
@@ -218,3 +218,7 @@ The [D-Flash paper](https://arxiv.org/abs/2602.06036) reports up to **~6× lossl
 | Alpaca | 1× | 1.88× | 2.27× |
 
 The gap in performance between D-Flash and EAGLE is a result of (i) a longer average accepted length — τ ≈ 6.5 on Qwen3-8B at block size 16, roughly double EAGLE-3's τ ≈ 3 — and (ii) the block-parallel pass keeping the per-round draft cost nearly flat in $\gamma$, so you accept more tokens per round without paying more to draft them. The gains are largest on structured and reasoning-heavy tasks, where the target's next tokens are more predictable, and shrink on open-ended chat (MT-Bench, Alpaca) and at high concurrency, where verification and memory traffic start to dominate.
+
+# What Comes Next?
+
+D-Flash has been a seminal work that quickly spurred new follow-ups like D-Spark and D-Flash 2. In different ways, both of these follow-ups target the multi-modal collision problem with parallel drafters, which states that even though each draft token is plausible, because of their independent block prediction, the resulting draft as a whole may not be cohere, so acceptance quickly decays after the first draft token. If you want to go deeper on the problem, make sure to check out [this write-up](https://www.the-information-bottleneck.com/p/speculative-decoding-from-zero-to) and stay tuned for more!

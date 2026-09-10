@@ -1,9 +1,9 @@
 ---
-title: "D-Flash KV Cache Injection"
-pubDate: 2026-07-25
-description: "D-Flash KV Cache Injection Algorithm"
+title: "How D-Flash Speeds Up Inference"
+pubDate: 2026-09-10
+description: "A walkthrough of D-Flash — the block-diffusion speculative decoder — and how its KV cache injection works in vLLM."
 category: "AI"
-tags: ["AI"]
+tags: ["AI", "speculative-decoding", "vllm", "inference", "llm"]
 cover: "/assets/images/dflash_kv_cache_injection.png"
 ---
 
